@@ -4,6 +4,8 @@ const path = require("path");
 const { check, validationResult } = require("express-validator");
 const Post = require("../models/post");
 
+const User = require("../models/user");
+
 //GET ALL POST
 exports.getPosts = (req, res, next) => {
   const currentPage = req.query.page || 1;
@@ -13,7 +15,6 @@ exports.getPosts = (req, res, next) => {
   Post.find()
     .countDocuments()
     .then((count) => {
-      console.log("Count===>", count);
       totalItems = count;
       return Post.find()
         .skip((currentPage - 1) * perPage)
