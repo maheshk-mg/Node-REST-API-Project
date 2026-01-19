@@ -5,7 +5,6 @@ const jwt = require("jsonwebtoken");
 const User = require("../models/user");
 
 exports.signupHandler = (req, res, next) => {
-  console.log(req);
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {

@@ -12,6 +12,7 @@ router.get("/posts", isAuth, feedController.getPosts);
 //POST /feed/post
 router.post(
   "/post",
+  isAuth,
   [
     body("title").trim().isLength({ min: 5 }),
     body("content").trim().isLength({ min: 5 }),
@@ -20,11 +21,12 @@ router.post(
 );
 
 // GET POST by ID
-router.get("/post/:postId", feedController.getPostById);
+router.get("/post/:postId", isAuth, feedController.getPostById);
 
 // PUT by ID
 router.put(
   "/post/:postId",
+  isAuth,
   [
     body("title").trim().isLength({ min: 5 }),
     body("content").trim().isLength({ min: 5 }),
@@ -33,12 +35,12 @@ router.put(
 );
 
 //PATCH Post Mark By ID
-router.patch("/posts/update-mark", feedController.updatePostMark);
+router.patch("/posts/update-mark", isAuth, feedController.updatePostMark);
 
 //DELETE by ID
-router.delete("/post/:postId", feedController.deletPost);
+router.delete("/post/:postId", isAuth, feedController.deletPost);
 
 // DELETE by Many IDS
-router.delete("/posts", feedController.deleteManyPosts);
+router.delete("/posts", isAuth, feedController.deleteManyPosts);
 
 module.exports = router;

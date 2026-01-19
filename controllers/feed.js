@@ -2,8 +2,8 @@ const fs = require("fs");
 const path = require("path");
 
 const { check, validationResult } = require("express-validator");
-const Post = require("../models/post");
 
+const Post = require("../models/post");
 const User = require("../models/user");
 
 //GET ALL POST
@@ -55,22 +55,31 @@ exports.createPost = (req, res, next) => {
   const imagesUrl = image.path;
   const title = req.body.title;
   const content = req.body.content;
+
+  let creator;
   const post = Post({
     title: title,
     content: content,
     imageUrl: imagesUrl,
-    creator: {
-      name: "MK",
-    },
+    creator: req.userId,
     isPostMark: false,
   });
 
   post
     .save()
     .then((result) => {
+      return User.findById(req.userId);
+    })
+    .then((user) => {
+      creator = user;
+      user.post.push(post);
+      return user.save();
+    })
+    .then((result) => {
       res.status(201).json({
-        message: "Post Create Successfully",
-        post: result,
+        message: "Post Created Successfully",
+        post: post,
+        creator: { _id: creator._id, name: creator.name },
       });
     })
     .catch((err) => {
@@ -131,6 +140,12 @@ exports.updatePost = (req, res, next) => {
       if (!post) {
         const error = new Error("Could not find post");
         error.statusCode = 404;
+        throw error;
+      }
+
+      if (post.creator.toString() !== req.userId) {
+        const error = new Error("Not Authorized");
+        error.statusCode = 403;
         throw error;
       }
 
@@ -197,8 +212,21 @@ exports.deletPost = (req, res, next) => {
         throw error;
       }
 
+      if (post.creator.toString() !== req.userId) {
+        const error = new Error("Not Authorized");
+        error.statusCode = 403;
+        throw error;
+      }
+
       clearImage(post.imageUrl);
       return Post.deleteOne({ _id: postId });
+    })
+    .then((result) => {
+      return User.findById(req.userId);
+    })
+    .then((user) => {
+      user.post.pull(postId);
+      return user.save();
     })
     .then((result) => {
       res.status(200).json({ message: "Post Delete Successfully!" });
@@ -221,7 +249,7 @@ exports.deleteManyPosts = (req, res, next) => {
 
   Post.find({ _id: { $in: postIds } })
     .then((posts) => {
-      console.log("===>", posts);
+      s;
       posts.forEach((post) => {
         if (!post) {
           const error = new Error("Could not find post..");
