@@ -7,31 +7,46 @@ const Post = require("../models/post");
 const User = require("../models/user");
 
 //GET ALL POST
-exports.getPosts = (req, res, next) => {
+exports.getPosts = async (req, res, next) => {
   const currentPage = req.query.page || 1;
-  const perPage = 1;
+  const perPage = 2;
   let totalItems;
+  try {
+    const totalItems = await Post.find().countDocuments();
+    const posts = await Post.find()
+      .skip((currentPage - 1) * perPage)
+      .limit(perPage);
 
-  Post.find()
-    .countDocuments()
-    .then((count) => {
-      totalItems = count;
-      return Post.find()
-        .skip((currentPage - 1) * perPage)
-        .limit(perPage);
-    })
-    .then((posts) => {
-      res.status(200).json({
-        message: "Posts Fetched successfully",
-        posts: posts,
-        totalItems: totalItems,
-      });
+    res.status(200).json({
+      message: "Posts Fetched successfully",
+      posts: posts,
+      totalItems: totalItems,
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+//GET POST BY ID
+exports.getPostById = (req, res, next) => {
+  const postId = req.params.postId;
+
+  Post.findById(postId)
+    .then((post) => {
+      if (!post) {
+        const error = new Error("Could not find post");
+        error.statusCode = 404;
+        throw error;
+      }
+      res.status(200).json({ message: "Post fetched by Id", post: post });
     })
     .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
+      const error = new Error(err);
+      error.httpStatusCode = 500;
+      return next(error);
     });
 };
 
@@ -55,6 +70,7 @@ exports.createPost = (req, res, next) => {
   const imagesUrl = image.path;
   const title = req.body.title;
   const content = req.body.content;
+  const isPostmakr = req.body.isPostMark;
 
   let creator;
   const post = Post({
@@ -62,7 +78,7 @@ exports.createPost = (req, res, next) => {
     content: content,
     imageUrl: imagesUrl,
     creator: req.userId,
-    isPostMark: false,
+    isPostMark: isPostmakr ? isPostmakr : false,
   });
 
   post
@@ -90,26 +106,6 @@ exports.createPost = (req, res, next) => {
     });
 };
 
-//GET POST BY ID
-exports.getPostById = (req, res, next) => {
-  const postId = req.params.postId;
-
-  Post.findById(postId)
-    .then((post) => {
-      if (!post) {
-        const error = new Error("Could not find post");
-        error.statusCode = 404;
-        throw error;
-      }
-      res.status(200).json({ message: "Post fetched by Id", post: post });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
-};
-
 // UPDATE POST BY ID
 exports.updatePost = (req, res, next) => {
   const postId = req.params.postId;
@@ -126,12 +122,6 @@ exports.updatePost = (req, res, next) => {
   if (!errors.isEmpty()) {
     const error = new Error("Validation Failed, Entered data is Incorrect.");
     error.statusCode = 422;
-    throw error;
-  }
-
-  if (!imageUrl) {
-    const error = new Error("No file picked");
-    error.statusCode = 442;
     throw error;
   }
 
@@ -153,10 +143,13 @@ exports.updatePost = (req, res, next) => {
         clearImage(post.imageUrl);
       }
 
-      post.title = title;
-      post.imageUrl = imageUrl;
-      post.content = content;
+      if (title) post.title = title;
+      if (content) post.content = content;
 
+      if (req.file) {
+        clearImage(post.imageUrl);
+        post.imageUrl = req.file.path;
+      }
       return post.save();
     })
     .then((result) => {
@@ -249,7 +242,6 @@ exports.deleteManyPosts = (req, res, next) => {
 
   Post.find({ _id: { $in: postIds } })
     .then((posts) => {
-      s;
       posts.forEach((post) => {
         if (!post) {
           const error = new Error("Could not find post..");

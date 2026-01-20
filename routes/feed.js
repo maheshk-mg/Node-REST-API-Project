@@ -9,6 +9,9 @@ const router = express.Router();
 // GET  /feed
 router.get("/posts", isAuth, feedController.getPosts);
 
+// GET POST by ID
+router.get("/post/:postId", isAuth, feedController.getPostById);
+
 //POST /feed/post
 router.post(
   "/post",
@@ -17,21 +20,18 @@ router.post(
     body("title").trim().isLength({ min: 5 }),
     body("content").trim().isLength({ min: 5 }),
   ],
-  feedController.createPost
+  feedController.createPost,
 );
-
-// GET POST by ID
-router.get("/post/:postId", isAuth, feedController.getPostById);
 
 // PUT by ID
 router.put(
   "/post/:postId",
   isAuth,
   [
-    body("title").trim().isLength({ min: 5 }),
-    body("content").trim().isLength({ min: 5 }),
+    body("title").optional().trim().isLength({ min: 5 }),
+    body("content").optional().trim().isLength({ min: 5 }),
   ],
-  feedController.updatePost
+  feedController.updatePost,
 );
 
 //PATCH Post Mark By ID

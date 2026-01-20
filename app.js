@@ -63,7 +63,7 @@ app.use((error, req, res, next) => {
   res.status(status).json({ message: message, data: data });
 });
 
-const PORT = 8000;
+const PORT = 8080
 
 mongoose
   .connect(MONGODB_URI)
