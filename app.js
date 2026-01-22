@@ -18,34 +18,34 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 /* ---------- FILE UPLOAD CONFIG ---------- */
-const fileStorage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "images");
-  },
-  filename: (req, file, cb) => {
-    cb(null, new Date().toISOString() + "-" + file.originalname);
-  },
-});
+// const fileStorage = multer.diskStorage({
+//   destination: (req, file, cb) => {
+//     cb(null, "images");
+//   },
+//   filename: (req, file, cb) => {
+//     cb(null, new Date().toISOString() + "-" + file.originalname);
+//   },
+// });
 
-const fileFiler = (req, file, cb) => {
-  if (
-    file.mimetype === "image/png" ||
-    file.mimetype === "image/jpg" ||
-    file.mimetype === "image/jpeg" ||
-    file.mimetype === "image/webp"
-  ) {
-    cb(null, true);
-  } else {
-    cb(null, false);
-  }
-};
+// const fileFiler = (req, file, cb) => {
+//   if (
+//     file.mimetype === "image/png" ||
+//     file.mimetype === "image/jpg" ||
+//     file.mimetype === "image/jpeg" ||
+//     file.mimetype === "image/webp"
+//   ) {
+//     cb(null, true);
+//   } else {
+//     cb(null, false);
+//   }
+// };
 
 /* ---------- MIDDLEWARE ---------- */
-app.use(bodyParser.json());
-app.use(
-  multer({ storage: fileStorage, fileFilter: fileFiler }).single("image"),
-);
-app.use("/images", express.static(path.join(__dirname, "images")));
+app.use(express.json());
+// app.use(
+//   multer({ storage: fileStorage, fileFilter: fileFiler }).single("image"),
+// );
+// app.use("/images", express.static(path.join(__dirname, "images")));
 
 /* ---------- CORS ---------- */
 app.use((req, res, next) => {
@@ -93,6 +93,7 @@ app.use((error, req, res, next) => {
   const status = error.statusCode || 500;
   const message = error.message;
   const data = error.data;
+  console.log(error);
   res.status(status).json({ message, data });
 });
 

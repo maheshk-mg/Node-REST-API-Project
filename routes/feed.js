@@ -2,6 +2,7 @@ const express = require("express");
 const { body } = require("express-validator");
 
 const feedController = require("../controllers/feed");
+const upload = require("../middleware/upload");
 const isAuth = require("../middleware/is-auth");
 
 const router = express.Router();
@@ -16,6 +17,7 @@ router.get("/post/:postId", isAuth, feedController.getPostById);
 router.post(
   "/post",
   isAuth,
+  upload.single("image"),
   [
     body("title").trim().isLength({ min: 5 }),
     body("content").trim().isLength({ min: 5 }),

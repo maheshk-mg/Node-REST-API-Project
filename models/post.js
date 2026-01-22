@@ -3,29 +3,24 @@ const Schema = mongoose.Schema;
 
 const postSchema = new Schema(
   {
-    title: {
-      type: String,
-      required: true,
-    },
-    imageUrl: {
-      type: String,
-      required: true,
-    },
-    content: {
-      type: String,
-      required: true,
-    },
+    title: { type: String, required: true, trim: true },
+    content: { type: String, required: true, trim: true },
+    
+    imageUrl: { type: String, required: true },
+    imagePublicId: { type: String, required: true },
+
     creator: {
-      type: Object,
-      required: String,
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
     },
+
     isPostMark: {
       type: Boolean,
       default: false,
-      required: true,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 module.exports = mongoose.model("Post", postSchema);

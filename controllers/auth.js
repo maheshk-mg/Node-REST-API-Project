@@ -46,7 +46,6 @@ exports.loginHandler = (req, res, next) => {
   User.findOne({ email: email })
     .then((user) => {
       if (!user) {
-        console.log("===>", user);
         const error = new Error("User Email could not found");
         error.statusCode = 401;
         throw error;

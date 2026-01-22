@@ -66,21 +66,16 @@ exports.createPost = (req, res, next) => {
     throw error;
   }
 
-  const image = req.file;
-  const imagesUrl = image.path;
-  const title = req.body.title;
-  const content = req.body.content;
-  const isPostmakr = req.body.isPostMark;
-
   let creator;
-  const post = Post({
-    title: title,
-    content: content,
-    imageUrl: imagesUrl,
-    creator: req.userId,
-    isPostMark: isPostmakr ? isPostmakr : false,
-  });
-
+    const post = new Post({
+      title: req.body.title,
+      content: req.body.content,
+      imageUrl: req.file.path,
+      imagePublicId: req.file.filename,
+      creator: req.userId,
+      isPostMark: req.body.isPostMark ? req.body.isPostMark : false,
+    });
+    
   post
     .save()
     .then((result) => {
