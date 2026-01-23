@@ -1,0 +1,9 @@
+MongoDB 
+
+-  db.insertOne({})  ===>  One document insert
+-  db.insertMany([{}]) ===> insert many document as single line
+-
+
+
+
+//https://youtu.be/6_wfq76CG6g?si=j_61Or5aYXvL6JP_ for api project 
