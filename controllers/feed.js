@@ -5,12 +5,12 @@ const { check, validationResult } = require("express-validator");
 
 const Post = require("../models/post");
 const User = require("../models/user");
+const cloudinary = require("../config/cloudinary");
 
 //GET ALL POST
 exports.getPosts = async (req, res, next) => {
   const currentPage = req.query.page || 1;
   const perPage = 2;
-  let totalItems;
   try {
     const totalItems = await Post.find().countDocuments();
     const posts = await Post.find()
@@ -31,27 +31,26 @@ exports.getPosts = async (req, res, next) => {
 };
 
 //GET POST BY ID
-exports.getPostById = (req, res, next) => {
+exports.getPostById = async (req, res, next) => {
   const postId = req.params.postId;
 
-  Post.findById(postId)
-    .then((post) => {
-      if (!post) {
-        const error = new Error("Could not find post");
-        error.statusCode = 404;
-        throw error;
-      }
-      res.status(200).json({ message: "Post fetched by Id", post: post });
-    })
-    .catch((err) => {
-      const error = new Error(err);
-      error.httpStatusCode = 500;
-      return next(error);
-    });
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      const error = new Error("Could not find post");
+      error.statusCode = 404;
+      throw error;
+    }
+    res.status(200).json({ message: "Post fetched by Id", post: post });
+  } catch (err) {
+    const error = new Error(err);
+    error.httpStatusCode = 500;
+    return next(error);
+  }
 };
 
 //CREATE POST
-exports.createPost = (req, res, next) => {
+exports.createPost = async (req, res, next) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -65,52 +64,30 @@ exports.createPost = (req, res, next) => {
     error.statusCode = 442;
     throw error;
   }
+  const post = new Post({
+    title: req.body.title,
+    content: req.body.content,
+    imageUrl: req.file.path,
+    imagePublicId: req.file.filename,
+    creator: req.userId,
+    isPostMark: req.body.isPostMark ? req.body.isPostMark : false,
+  });
 
-  let creator;
-    const post = new Post({
-      title: req.body.title,
-      content: req.body.content,
-      imageUrl: req.file.path,
-      imagePublicId: req.file.filename,
-      creator: req.userId,
-      isPostMark: req.body.isPostMark ? req.body.isPostMark : false,
-    });
-    
-  post
-    .save()
-    .then((result) => {
-      return User.findById(req.userId);
-    })
-    .then((user) => {
-      creator = user;
-      user.post.push(post);
-      return user.save();
-    })
-    .then((result) => {
-      res.status(201).json({
-        message: "Post Created Successfully",
-        post: post,
-        creator: { _id: creator._id, name: creator.name },
-      });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
-    });
+  await post.save();
+  const user = await User.findById(req.userId);
+  user.post.push(post);
+  await user.save();
+
+  res.status(201).json({
+    message: "Post created successfully",
+    post,
+    creator: { _id: user._id, name: user.name },
+  });
 };
 
 // UPDATE POST BY ID
-exports.updatePost = (req, res, next) => {
+exports.updatePost = async (req, res, next) => {
   const postId = req.params.postId;
-  const title = req.body.title;
-  const content = req.body.content;
-  let imageUrl = req.body.imageUrl;
-
-  if (req.file) {
-    imageUrl = req.file.path;
-  }
 
   const errors = validationResult(req);
 
@@ -120,49 +97,49 @@ exports.updatePost = (req, res, next) => {
     throw error;
   }
 
-  Post.findById(postId)
-    .then((post) => {
-      if (!post) {
-        const error = new Error("Could not find post");
-        error.statusCode = 404;
-        throw error;
+  try {
+    const post = await Post.findById(postId);
+    if (!post) {
+      const error = new Error("Post not found");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (post.creator.toString() !== req.userId) {
+      const error = new Error("Not Authorized");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    if (req.body.title) post.title = req.body.title;
+    if (req.body.content) post.content = req.body.content;
+
+    if (req.file) {
+      // delete old image from cloudinary
+      if (post.imagePublicId) {
+        await cloudinary.uploader.destroy(post.imagePublicId);
       }
 
-      if (post.creator.toString() !== req.userId) {
-        const error = new Error("Not Authorized");
-        error.statusCode = 403;
-        throw error;
-      }
+      post.imageUrl = req.file.path;
+      post.imagePublicId = req.file.filename;
+    }
 
-      if (imageUrl !== post.imageUrl) {
-        clearImage(post.imageUrl);
-      }
+    const result = await post.save();
 
-      if (title) post.title = title;
-      if (content) post.content = content;
-
-      if (req.file) {
-        clearImage(post.imageUrl);
-        post.imageUrl = req.file.path;
-      }
-      return post.save();
-    })
-    .then((result) => {
-      res.status(201).json({
-        message: "Post Update Successfully",
-        post: result,
-      });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
+    res.status(200).json({
+      message: "Post updated successfully",
+      post: result,
     });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
 // UPDATE Post Mark by ID
-exports.updatePostMark = (req, res, next) => {
+exports.updatePostMark = async (req, res, next) => {
   const { postIds, isPostMark } = req.body;
 
   if (!Array.isArray(postIds) || postIds.length === 0) {
@@ -175,92 +152,81 @@ exports.updatePostMark = (req, res, next) => {
     });
   }
 
-  Post.updateMany({ _id: { $in: postIds } }, { $set: { isPostMark } })
-    .then((result) => {
-      res.status(201).json({
-        message: "Post Marked Successfully",
-      });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
+  try {
+    await Post.updateMany({ _id: { $in: postIds } }, { $set: { isPostMark } });
+    res.status(201).json({
+      message: "Post Marked Successfully",
     });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
 //DELETE POST BY ID
-exports.deletPost = (req, res, next) => {
+exports.deletPost = async (req, res, next) => {
   const postId = req.params.postId;
-  Post.findById(postId)
-    .then((post) => {
-      if (!post) {
-        const error = new Error("Could not find post..");
-        error.statusCode = 404;
-        throw error;
-      }
 
-      if (post.creator.toString() !== req.userId) {
-        const error = new Error("Not Authorized");
-        error.statusCode = 403;
-        throw error;
-      }
+  const post = await Post.findById(postId);
 
-      clearImage(post.imageUrl);
-      return Post.deleteOne({ _id: postId });
-    })
-    .then((result) => {
-      return User.findById(req.userId);
-    })
-    .then((user) => {
-      user.post.pull(postId);
-      return user.save();
-    })
-    .then((result) => {
-      res.status(200).json({ message: "Post Delete Successfully!" });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
-      }
-      next(err);
-    });
+  try {
+    if (!post) {
+      const error = new Error("Could not find post..");
+      error.statusCode = 404;
+      throw error;
+    }
+
+    if (post.creator.toString() !== req.userId) {
+      const error = new Error("Not Authorized");
+      error.statusCode = 403;
+      throw error;
+    }
+
+    if (post.imagePublicId) {
+      await cloudinary.uploader.destroy(post.imagePublicId);
+    }
+
+    await Post.deleteOne({ _id: postId });
+
+    const user = await User.findById(req.userId);
+    user.post.pull(postId);
+    await user.save();
+
+    res.status(200).json({ message: "Post deleted successfully" });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };
 
 //DELETE POST by IDS Array
-exports.deleteManyPosts = (req, res, next) => {
+exports.deleteManyPosts = async (req, res, next) => {
   const postIds = req.body.postIds;
 
   if (!Array.isArray(postIds) || postIds.length === 0) {
     return res.status(400).json({ message: "Post ID must send in an array" });
   }
 
-  Post.find({ _id: { $in: postIds } })
-    .then((posts) => {
-      posts.forEach((post) => {
-        if (!post) {
-          const error = new Error("Could not find post..");
-          error.statusCode = 404;
-          throw error;
-        }
-        clearImage(post.imageUrl);
-      });
+  const posts = await Post.find({ _id: { $in: postIds } });
 
-      return Post.deleteMany({ _id: { $in: postIds } });
-    })
-    .then((result) => {
-      res.status(200).json({ message: "Posts Delete Successfully!" });
-    })
-    .catch((err) => {
-      if (!err.statusCode) {
-        err.statusCode = 500;
+  try {
+    for (const post of posts) {
+      if (post.imagePublicId) {
+        await cloudinary.uploader.destroy(post.imagePublicId);
       }
-      next(err);
-    });
-};
+    }
 
-//Clear Images
-const clearImage = (filePath) => {
-  filePath = path.join(__dirname, "..", filePath);
-  fs.unlink(filePath, (err) => console.log(err));
+    await Post.deleteMany({ _id: { $in: postIds } });
+
+    res.status(200).json({ message: "Select Posts deleted successfully" });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
 };

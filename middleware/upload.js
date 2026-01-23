@@ -4,18 +4,28 @@ const cloudinary = require("../config/cloudinary");
 
 const storage = new CloudinaryStorage({
   cloudinary,
-  params: {
-    folder: "blogFeed_images",
-    allowed_formats: ["jpg", "jpeg", "png", "webp"],
-    public_id: (req, file) => {
-      const name = file.originalname
-        .split(".")
-        .slice(0, -1)
-        .join(".")
-        .replace(/\s+/g, "-");
+  params: async (req, file) => {
+    const name = file.originalname
+      .split(".")
+      .slice(0, -1)
+      .join(".")
+      .replace(/\s+/g, "-");
 
-      return `${Date.now()}-${name}`;
-    },
+    return {
+      folder: "blogFeed_images",
+      public_id: `${Date.now()}-${name}`,
+      allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      transformation: [
+        {
+          width: 800,
+          height: 800,
+          crop: "fill",
+          gravity: "auto",
+          quality: "auto",
+          fetch_format: "auto",
+        },
+      ],
+    };
   },
 });
 

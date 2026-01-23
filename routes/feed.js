@@ -29,6 +29,7 @@ router.post(
 router.put(
   "/post/:postId",
   isAuth,
+  upload.single("image"),
   [
     body("title").optional().trim().isLength({ min: 5 }),
     body("content").optional().trim().isLength({ min: 5 }),
