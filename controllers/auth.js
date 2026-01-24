@@ -72,3 +72,15 @@ exports.loginHandler = async (req, res, next) => {
     next(err);
   }
 };
+
+exports.logoutHandler = async (req, res, next) => {
+  try {
+    console.log("User logged out");
+    res.status(200).json({ message: "User logged out successfully" });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};

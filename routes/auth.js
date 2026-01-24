@@ -30,4 +30,6 @@ router.put(
 
 router.post("/login", authController.loginHandler);
 
+router.post("/logout", authController.logoutHandler);
+
 module.exports = router;
