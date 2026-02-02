@@ -79,7 +79,7 @@ app.use(morgan("combined", { stream: accessLogStream }));
 
 app.use("/feed", feedRoutes);
 app.use("/auth", authRoutes);
-
+app.use("/profile",)
 
 
 /* ---------- OPTIONAL 500 ROUTE ---------- */

@@ -1,8 +1,5 @@
-const fs = require("fs");
-const path = require("path");
 
 const { check, validationResult } = require("express-validator");
-
 const Post = require("../models/post");
 const User = require("../models/user");
 const cloudinary = require("../config/cloudinary");

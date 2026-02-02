@@ -18,12 +18,30 @@ const userSchema = new Schema({
     type: String,
     default: "I am new!",
   },
+
+  profileImage: { type: String, default: null },
+  profileImagePublicId: { type: String, default: null },
+  bio: { type: String, default: "" },
+  phone: { type: String, default: null },
+  location: { type: String, default: "" },
+  dob: { type: String, default: null },
+
   post: [
     {
       type: Schema.Types.ObjectId,
       ref: "Post",
     },
   ],
+
+  resetPasswordToken: {
+    type: String,
+    default: null,
+  },
+
+  resetPasswordExpire: {
+    type: Date,
+    default: null,
+  },
 });
 
 module.exports = mongoose.model("User", userSchema);

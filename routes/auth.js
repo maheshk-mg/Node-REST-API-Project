@@ -1,5 +1,5 @@
 const express = require("express");
-const { check, body, validationResult } = require("express-validator");
+const { body } = require("express-validator");
 
 const authController = require("../controllers/auth");
 
@@ -21,15 +21,27 @@ router.put(
           }
         });
       })
-      .normalizeEmail(),
+      .trim()
+      .toLowerCase()
+      .normalizeEmail({
+        gmail_remove_dots: false,
+        gmail_remove_subaddress: false,
+      }),
     body("password").trim().isLength({ min: 5 }),
     body("name").trim().not().isEmpty(),
   ],
-  authController.signupHandler
+  authController.signupHandler,
 );
 
 router.post("/login", authController.loginHandler);
 
 router.post("/logout", authController.logoutHandler);
+
+router.post("/forget-password", authController.forgetPassword);
+
+router.post("/reset-password/:token", authController.resetPassword);
+
+
+
 
 module.exports = router;
