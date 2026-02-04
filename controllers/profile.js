@@ -7,7 +7,7 @@ exports.getProfile = async (req, res, next) => {
   const userId = req.userId;
 
   try {
-    const user = await User.findById(userId).select("-password");
+    const user = await User.findById(userId).select( "name email phone location dob bio profileImage profileImagePublicId status createdAt updatedAt");
     if (!user) {
       const error = new Error("User not found");
       error.statusCode = 404;

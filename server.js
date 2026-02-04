@@ -12,6 +12,7 @@ const morgan = require("morgan");
 const db = require("./config/db");
 const feedRoutes = require("./routes/feed");
 const authRoutes = require("./routes/auth");
+const profiles = require("./routes/profile");
 const errorController = require("./controllers/error");
 
 const app = express();
@@ -79,8 +80,7 @@ app.use(morgan("combined", { stream: accessLogStream }));
 
 app.use("/feed", feedRoutes);
 app.use("/auth", authRoutes);
-app.use("/profile",)
-
+app.use("/profile", profiles);
 
 /* ---------- OPTIONAL 500 ROUTE ---------- */
 app.get("/500", errorController.get500);
@@ -104,6 +104,6 @@ db()
       console.log(`Server is running on http://localhost:${PORT}`);
     });
   })
-  .catch(err => {
-    console.error('Failed to connect to the database:', err.message);
+  .catch((err) => {
+    console.error("Failed to connect to the database:", err.message);
   });
