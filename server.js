@@ -1,19 +1,23 @@
-require("dotenv").config();
-const express = require("express");
-const bodyParser = require("body-parser");
-const mongoose = require("mongoose");
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
-const helmet = require("helmet");
-const compression = require("compression");
-const morgan = require("morgan");
+import dotenv from "dotenv";
+dotenv.config();
 
-const db = require("./config/db");
-const feedRoutes = require("./routes/feed");
-const authRoutes = require("./routes/auth");
-const profiles = require("./routes/profile");
-const errorController = require("./controllers/error");
+import express from "express";
+import bodyParser from "body-parser";
+import mongoose from "mongoose";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import helmet from "helmet";
+import compression from "compression";
+import morgan from "morgan";
+
+import db from "./config/db.js";
+import feedRoutes from "./routes/feed.js";
+import authRoutes from "./routes/auth.js";
+import profiles from "./routes/profile.js";
+import { get404, get500 } from "./controllers/error.js";
+
+
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -83,10 +87,10 @@ app.use("/auth", authRoutes);
 app.use("/profile", profiles);
 
 /* ---------- OPTIONAL 500 ROUTE ---------- */
-app.get("/500", errorController.get500);
+app.get("/500", get500);
 
 /* ---------- 404 HANDLER (LAST ROUTE) ---------- */
-app.use(errorController.get404);
+app.use(get404);
 
 /* ---------- GLOBAL ERROR HANDLER ---------- */
 app.use((error, req, res, next) => {

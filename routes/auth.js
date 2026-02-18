@@ -43,5 +43,4 @@ router.post("/reset-password/:token", authController.resetPassword);
 
 
 
-
-module.exports = router;
+export default router

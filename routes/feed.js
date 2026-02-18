@@ -46,4 +46,4 @@ router.delete("/post/:postId", isAuth, feedController.deletPost);
 // DELETE by Many IDS
 router.delete("/posts", isAuth, feedController.deleteManyPosts);
 
-module.exports = router;
+export default router;
