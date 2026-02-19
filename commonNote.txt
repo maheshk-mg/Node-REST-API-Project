@@ -4,9 +4,6 @@ https://youtu.be/6_wfq76CG6g?si=j_61Or5aYXvL6JP_ // for api project
 https://www.youtube.com/watch?v=bJSbYCNJd5w&list=PL0wRpfJO-IVe7B9pnQ7KK50WcbwtswwIt  //  MongoDB PlayList
 
 
-
-
-
 {
     "email": "mahesh.lanetteam@gmail.com",
     "password": "Msk@123",
