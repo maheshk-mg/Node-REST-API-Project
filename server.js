@@ -7,6 +7,7 @@ import mongoose from "mongoose";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
+import { fileURLToPath } from "url";
 import helmet from "helmet";
 import compression from "compression";
 import morgan from "morgan";
@@ -16,6 +17,9 @@ import feedRoutes from "./routes/feed.js";
 import authRoutes from "./routes/auth.js";
 import profiles from "./routes/profile.js";
 import { get404, get500 } from "./controllers/error.js";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 
 

@@ -1,9 +1,7 @@
+import express from "express";
+import isAuth from "../middleware/is-auth.js";
+import * as userController from "../controllers/profile.js";
 
-const express = require("express");
-// const upload = require("../middleware/upload");
-const isAuth = require("../middleware/is-auth");
-
-const userController = require("../controllers/profile");
 const router = express.Router();
 
 router.get("/", isAuth, userController.getProfile);

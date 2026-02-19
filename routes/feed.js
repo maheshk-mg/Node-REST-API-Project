@@ -1,9 +1,9 @@
-const express = require("express");
-const { body } = require("express-validator");
+import express from "express";
+import { body } from "express-validator";
 
-const feedController = require("../controllers/feed");
-const upload = require("../middleware/upload");
-const isAuth = require("../middleware/is-auth");
+import * as feedController from "../controllers/feed.js";
+import upload from "../middleware/upload.js";
+import isAuth from "../middleware/is-auth.js";
 
 const router = express.Router();
 
