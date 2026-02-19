@@ -1,13 +1,12 @@
-const express = require("express");
-const { body } = require("express-validator");
+import express from "express";
+import { body } from "express-validator";
 
-const authController = require("../controllers/auth");
-
-const User = require("../models/user");
+import * as authController from "../controllers/auth.js";
+import User from "../models/user.js";
 
 const router = express.Router();
 
-// PUT /auth/signin
+// PUT /auth/signup
 router.put(
   "/signup",
   [
@@ -41,6 +40,4 @@ router.post("/forget-password", authController.forgetPassword);
 
 router.post("/reset-password/:token", authController.resetPassword);
 
-
-
-export default router
+export default router;

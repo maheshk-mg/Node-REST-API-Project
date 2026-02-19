@@ -1,13 +1,17 @@
-const { check, body, validationResult } = require("express-validator");
-const bcrypt = require("bcryptjs");
-const crypto = require("crypto");
-const jwt = require("jsonwebtoken");
-const fs = require("fs");
-const path = require("path");
-const User = require("../models/user");
+import { body, validationResult } from "express-validator";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import User from "../models/user.js";
 
-const nodemailer = require("nodemailer");
-const sendgridTransport = require("nodemailer-sendgrid-transport");
+import nodemailer from "nodemailer";
+import sendgridTransport from "nodemailer-sendgrid-transport";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const filePath = path.join(__dirname, "../emails/welcome.html");
 let htmlTemplate = fs.readFileSync(filePath, "utf8");
@@ -20,7 +24,7 @@ const transport = nodemailer.createTransport(
   }),
 );
 
-exports.signupHandler = async (req, res, next) => {
+export const signupHandler = async (req, res, next) => {
   try {
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
@@ -54,12 +58,11 @@ exports.signupHandler = async (req, res, next) => {
     if (!err.statusCode) {
       err.statusCode = 500;
     }
-    // 3. Fix: Pass the 'err' object into next()
     next(err);
   }
 };
 
-exports.loginHandler = async (req, res, next) => {
+export const loginHandler = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -99,7 +102,7 @@ exports.loginHandler = async (req, res, next) => {
   }
 };
 
-exports.logoutHandler = async (req, res, next) => {
+export const logoutHandler = async (req, res, next) => {
   try {
     console.log("User logged out");
     res.status(200).json({ message: "User logged out successfully" });
@@ -111,7 +114,7 @@ exports.logoutHandler = async (req, res, next) => {
   }
 };
 
-exports.forgetPassword = async (req, res, next) => {
+export const forgetPassword = async (req, res, next) => {
   try {
     const { email } = req.body;
 
@@ -145,7 +148,7 @@ exports.forgetPassword = async (req, res, next) => {
   }
 };
 
-exports.resetPassword = async (req, res, next) => {
+export const resetPassword = async (req, res, next) => {
   try {
     const { token } = req.params;
     const { newPassword, confirmPassword } = req.body;
@@ -171,7 +174,6 @@ exports.resetPassword = async (req, res, next) => {
       return res.status(400).json({ message: "Invalid or expired token" });
     }
 
-
     const newHashPassword = await bcrypt.hash(newPassword, 12);
 
     user.password = newHashPassword;
@@ -179,12 +181,9 @@ exports.resetPassword = async (req, res, next) => {
     user.resetPasswordToken = undefined;
     user.resetPasswordExpire = undefined;
 
-
     await user.save();
 
     res.json({ message: "✅ Password updated successfully" });
-
-
   } catch (err) {
     if (!err.statusCode) {
       err.statusCode = 500;

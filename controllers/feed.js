@@ -1,11 +1,10 @@
-
-const { check, validationResult } = require("express-validator");
-const Post = require("../models/post");
-const User = require("../models/user");
-const cloudinary = require("../config/cloudinary");
+import { validationResult } from "express-validator";
+import Post from "../models/post.js";
+import User from "../models/user.js";
+import cloudinary from "../config/cloudinary.js";
 
 //GET ALL POST
-exports.getPosts = async (req, res, next) => {
+export const getPosts = async (req, res, next) => {
   const currentPage = req.query.page || 1;
   const perPage = 2;
   try {
@@ -28,7 +27,7 @@ exports.getPosts = async (req, res, next) => {
 };
 
 //GET POST BY ID
-exports.getPostById = async (req, res, next) => {
+export const getPostById = async (req, res, next) => {
   const postId = req.params.postId;
 
   try {
@@ -47,7 +46,7 @@ exports.getPostById = async (req, res, next) => {
 };
 
 //CREATE POST
-exports.createPost = async (req, res, next) => {
+export const createPost = async (req, res, next) => {
   const errors = validationResult(req);
 
   if (!errors.isEmpty()) {
@@ -83,7 +82,7 @@ exports.createPost = async (req, res, next) => {
 };
 
 // UPDATE POST BY ID
-exports.updatePost = async (req, res, next) => {
+export const updatePost = async (req, res, next) => {
   const postId = req.params.postId;
 
   const errors = validationResult(req);
@@ -136,7 +135,7 @@ exports.updatePost = async (req, res, next) => {
 };
 
 // UPDATE Post Mark by ID
-exports.updatePostMark = async (req, res, next) => {
+export const updatePostMark = async (req, res, next) => {
   const { postIds, isPostMark } = req.body;
 
   if (!Array.isArray(postIds) || postIds.length === 0) {
@@ -163,7 +162,7 @@ exports.updatePostMark = async (req, res, next) => {
 };
 
 //DELETE POST BY ID
-exports.deletPost = async (req, res, next) => {
+export const deletPost = async (req, res, next) => {
   const postId = req.params.postId;
 
   const post = await Post.findById(postId);
@@ -201,7 +200,7 @@ exports.deletPost = async (req, res, next) => {
 };
 
 //DELETE POST by IDS Array
-exports.deleteManyPosts = async (req, res, next) => {
+export const deleteManyPosts = async (req, res, next) => {
   const postIds = req.body.postIds;
 
   if (!Array.isArray(postIds) || postIds.length === 0) {

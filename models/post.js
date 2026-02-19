@@ -1,11 +1,11 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 const Schema = mongoose.Schema;
 
 const postSchema = new Schema(
   {
     title: { type: String, required: true, trim: true },
     content: { type: String, required: true, trim: true },
-    
+
     imageUrl: { type: String, required: true },
     imagePublicId: { type: String, required: true },
 
@@ -23,4 +23,4 @@ const postSchema = new Schema(
   { timestamps: true },
 );
 
-module.exports = mongoose.model("Post", postSchema);
+export default mongoose.model("Post", postSchema);
