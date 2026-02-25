@@ -3,10 +3,13 @@ import Post from "../models/post.js";
 import User from "../models/user.js";
 import cloudinary from "../config/cloudinary.js";
 
+const MAX_PAGE_SIZE = 50;
+
 //GET ALL POST
 export const getPosts = async (req, res, next) => {
-  const currentPage = req.query.page || 1;
-  const perPage = 2;
+  const currentPage = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const requestedLimit = parseInt(req.query.limit, 10) || 10;
+  const perPage = Math.min(MAX_PAGE_SIZE, Math.max(1, requestedLimit));
   try {
     const totalItems = await Post.find().countDocuments();
     const posts = await Post.find()
@@ -39,9 +42,10 @@ export const getPostById = async (req, res, next) => {
     }
     res.status(200).json({ message: "Post fetched by Id", post: post });
   } catch (err) {
-    const error = new Error(err);
-    error.httpStatusCode = 500;
-    return next(error);
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
   }
 };
 
@@ -57,7 +61,7 @@ export const createPost = async (req, res, next) => {
 
   if (!req.file) {
     const error = new Error("No image provided");
-    error.statusCode = 442;
+    error.statusCode = 422;
     throw error;
   }
   const post = new Post({

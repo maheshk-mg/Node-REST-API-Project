@@ -23,4 +23,8 @@ const postSchema = new Schema(
   { timestamps: true },
 );
 
+postSchema.index({ creator: 1 });
+postSchema.index({ creator: 1, createdAt: -1 });
+postSchema.index({ isPostMark: 1 });
+
 export default mongoose.model("Post", postSchema);

@@ -1,10 +1,20 @@
 import express from "express";
 import { body } from "express-validator";
+import rateLimit from "express-rate-limit";
 
 import * as authController from "../controllers/auth.js";
 import User from "../models/user.js";
+import asyncHandler from "../utils/asyncHandler.js";
 
 const router = express.Router();
+
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { message: "Too many auth attempts, please try again later." },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // PUT /auth/signup
 router.put(
@@ -16,7 +26,7 @@ router.put(
       .custom((value, { req }) => {
         return User.findOne({ email: value }).then((userDoc) => {
           if (userDoc) {
-            return Promise.reject("E-mail address already exits!");
+            return Promise.reject("E-mail address already exists!");
           }
         });
       })
@@ -29,15 +39,15 @@ router.put(
     body("password").trim().isLength({ min: 5 }),
     body("name").trim().not().isEmpty(),
   ],
-  authController.signupHandler,
+  asyncHandler(authController.signupHandler),
 );
 
-router.post("/login", authController.loginHandler);
+router.post("/login", authRateLimiter, asyncHandler(authController.loginHandler));
 
-router.post("/logout", authController.logoutHandler);
+router.post("/logout", asyncHandler(authController.logoutHandler));
 
-router.post("/forget-password", authController.forgetPassword);
+router.post("/forget-password", authRateLimiter, asyncHandler(authController.forgetPassword));
 
-router.post("/reset-password/:token", authController.resetPassword);
+router.post("/reset-password/:token", asyncHandler(authController.resetPassword));
 
 export default router;

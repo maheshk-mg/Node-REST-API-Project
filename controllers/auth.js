@@ -43,15 +43,23 @@ export const signupHandler = async (req, res, next) => {
     });
     const result = await user.save();
 
-    await transport.sendMail({
-      to: email,
-      from: process.env.EMAIL_FROM,
-      subject: "Welcome to Our Blog!",
-      html: htmlTemplate,
-    });
+    let emailSent = false;
+    if (process.env.NODE_ENV !== "test") {
+      try {
+        await transport.sendMail({
+          to: email,
+          from: process.env.EMAIL_FROM,
+          subject: "Welcome to Our Blog!",
+          html: htmlTemplate,
+        });
+        emailSent = true;
+      } catch (emailErr) {
+        console.warn("Welcome email failed (user was still created):", emailErr.message);
+      }
+    }
 
     res.status(201).json({
-      message: "User created and welcome email sent",
+      message: emailSent ? "User created and welcome email sent" : "User created",
       userId: result._id,
     });
   } catch (err) {

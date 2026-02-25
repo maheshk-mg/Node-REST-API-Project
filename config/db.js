@@ -5,7 +5,7 @@ dotenv.config();
 const mongoURL = process.env.MONGODB_URI
 
 if (!mongoURL) {
-    throw new Error('Please define the mongoURL environment variable in your .env file');
+    throw new Error('Please define the MONGODB_URI environment variable in your .env file');
 }
 
 async function connectDB() {
