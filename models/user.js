@@ -22,6 +22,12 @@ const userSchema = new Schema({
     default: "I am new!",
   },
 
+  role: {
+    type: String,
+    enum: ["user", "admin"],
+    default: "user",
+  },
+
   profileImage: { type: String, default: null },
   profileImagePublicId: { type: String, default: null },
   bio: { type: String, default: "" },

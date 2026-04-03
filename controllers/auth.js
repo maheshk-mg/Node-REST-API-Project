@@ -79,6 +79,9 @@ export const loginHandler = async (req, res, next) => {
 
     const user = await User.findOne({ email: email });
 
+
+    console.log("User found:", user); // Debug log to check if user is found
+
     if (!user) {
       const error = new Error("User Email could not found");
       error.statusCode = 401;
@@ -97,6 +100,7 @@ export const loginHandler = async (req, res, next) => {
       {
         email: user.email,
         userId: user._id.toString(),
+        role: user.role,
       },
       process.env.JWT_SECRET,
       {

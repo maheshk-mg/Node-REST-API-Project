@@ -42,5 +42,14 @@ export default (req, res, next) => {
 
   req.userId = decodedToken.userId;
   req.role = decodedToken.role;
+
+  console.log("....", req.role);
+
+  if (req.role !== "admin") {
+    const error = new Error("Forbidden: Admins only");
+    error.statusCode = 403;
+    return next(error);
+  }
+
   next();
 };

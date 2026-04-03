@@ -17,6 +17,7 @@ import db from "./config/db.js";
 import feedRoutes from "./routes/feed.js";
 import authRoutes from "./routes/auth.js";
 import profiles from "./routes/profile.js";
+import userRoutes from "./routes/user.js";
 import { get404, get500 } from "./controllers/error.js";
 import { apiLimiter, authLimiter } from "./middleware/rate-limit.js";
 import openApiSpec from "./docs/openapi.js";
@@ -109,6 +110,7 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(openApiSpec));
 app.use("/feed", feedRoutes);
 app.use("/auth", authLimiter, authRoutes);
 app.use("/profile", profiles);
+app.use("/users", userRoutes);
 
 /* ---------- OPTIONAL 500 ROUTE ---------- */
 app.get("/500", get500);
