@@ -1,0 +1,247 @@
+import { body, validationResult } from "express-validator";
+import bcrypt from "bcryptjs";
+import crypto from "crypto";
+import jwt from "jsonwebtoken";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import User from "../models/user.js";
+
+import nodemailer from "nodemailer";
+import sendgridTransport from "nodemailer-sendgrid-transport";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+const filePath = path.join(__dirname, "../emails/welcome.html");
+let htmlTemplate = fs.readFileSync(filePath, "utf8");
+
+const transport = nodemailer.createTransport(
+  sendgridTransport({
+    auth: {
+      api_key: process.env.SENDGRID_API_KEY,
+    },
+  }),
+);
+
+export const signupHandler = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed");
+      error.statusCode = 422;
+      error.data = errors.array();
+      return next(error);
+    }
+
+    const { email, password, name } = req.body;
+    const hashPassword = await bcrypt.hash(password, 12);
+    const user = new User({
+      email: email,
+      password: hashPassword,
+      name: name,
+    });
+    const result = await user.save();
+
+    // await transport.sendMail({
+    //   to: email,
+    //   from: process.env.EMAIL_FROM,
+    //   subject: "Welcome to Our Blog!",
+    //   html: htmlTemplate,
+    // });
+
+    res.status(201).json({
+      message: "User created successfully",
+      userId: result._id,
+    });
+  } catch (err) {
+    if (err.code === 11000) {
+      err.statusCode = 409;
+      err.message = "E-mail address already exists";
+    } else if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+export const loginHandler = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed");
+      error.statusCode = 422;
+      error.data = errors.array();
+      return next(error);
+    }
+
+    const { email, password } = req.body;
+
+    const user = await User.findOne({ email: email });
+
+    if (!user) {
+      const error = new Error("User Email could not found");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const isEqual = await bcrypt.compare(password, user.password);
+
+    if (!isEqual) {
+      const error = new Error("Wrong password");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    const token = jwt.sign(
+      {
+        email: user.email,
+        userId: user._id.toString(),
+      },
+      process.env.JWT_SECRET,
+      {
+        expiresIn: process.env.JWT_EXPIRES_IN,
+      },
+    );
+
+    res.status(200).json({ token: token, userId: user._id.toString() });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+export const logoutHandler = async (req, res, next) => {
+  try {
+    res.status(200).json({ message: "User logged out successfully" });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+export const forgetPassword = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed");
+      error.statusCode = 422;
+      error.data = errors.array();
+      return next(error);
+    }
+
+    const { email } = req.body;
+
+    const user = await User.findOne({ email: email });
+
+    if (!user) {
+      const error = new Error("User Email could not found");
+      error.statusCode = 401;
+      throw error;
+    }
+
+    // Generate reset token
+    const token = crypto.randomBytes(32).toString("hex");
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+    const resetTokenExpire = Date.now() + 15 * 60 * 1000; // 15 minutes
+
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpire = resetTokenExpire;
+    await user.save();
+
+    // // Production behavior: prefer sending the reset token via email.
+    // // If email is not configured, optionally return the token for testing.
+    // const resetPasswordUrl = process.env.RESET_PASSWORD_URL;
+    // const emailFrom = process.env.EMAIL_FROM;
+    // const canSendEmail = Boolean(resetPasswordUrl && emailFrom);
+
+    // if (canSendEmail) {
+    //   await transport.sendMail({
+    //     to: email,
+    //     from: emailFrom,
+    //     subject: "Password reset",
+    //     text: `To reset your password, visit: ${resetPasswordUrl}/${token}\n\nThis link expires in 15 minutes.`,
+    //   });
+
+    //   return res.json({
+    //     message: "Reset instructions sent to your email",
+    //     expiresIn: "15 minutes",
+    //   });
+    // }
+
+    // if (process.env.RETURN_RESET_TOKEN === "true") {
+    //   return res.json({
+    //     message: "Reset token created",
+    //     token, // testing mode only
+    //     expiresIn: "15 minutes",
+    //   });
+    // }
+
+    return res.json({
+      message:
+        "Password reset initiated. Configure RESET_PASSWORD_URL and EMAIL_FROM to email the token.",
+      expiresIn: "15 minutes",
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
+export const resetPassword = async (req, res, next) => {
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      const error = new Error("Validation failed");
+      error.statusCode = 422;
+      error.data = errors.array();
+      return next(error);
+    }
+
+    const { token } = req.params;
+    const { newPassword, confirmPassword } = req.body;
+
+    if (!newPassword || !confirmPassword) {
+      return res.status(400).json({
+        message: "Please provide password or confirm password fields",
+      });
+    }
+
+    if (newPassword !== confirmPassword) {
+      return res.status(400).json({ message: "Passwords do not match" });
+    }
+
+    const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
+
+    const user = await User.findOne({
+      resetPasswordToken: hashedToken,
+      resetPasswordExpire: { $gt: Date.now() },
+    });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid or expired token" });
+    }
+
+    const newHashPassword = await bcrypt.hash(newPassword, 12);
+
+    user.password = newHashPassword;
+
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpire = undefined;
+
+    await user.save();
+
+    res.json({ message: "✅ Password updated successfully" });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
