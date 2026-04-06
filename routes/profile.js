@@ -39,10 +39,10 @@ const updateProfileValidators = [
 router.get("/", isAuth, userController.getProfile);
 
 router.put(
-  "/update/:postId",
+  "/update/:userId",
   isAuth,
-  uploadProfileImage.single("image"),
   updateProfileValidators,
+  uploadProfileImage.single("image"),
   userController.updateProfile,
 );
 

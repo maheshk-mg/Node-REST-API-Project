@@ -28,7 +28,6 @@ export const getProfile = async (req, res, next) => {
   }
 };
 
-
 //update profile data
 export const updateProfile = async (req, res, next) => {
   const userId = req.userId;
@@ -48,7 +47,22 @@ export const updateProfile = async (req, res, next) => {
       throw error;
     }
 
-    if(req.body.status) user.status = req.body.status;
+    if (req.body.email && req.body.email !== user.email) {
+      const existingUser = await User.findOne({
+        email: req.body.email,
+        _id: { $ne: userId },
+      });
+      if (existingUser) {
+        if (req.file) {
+          await cloudinary.uploader.destroy(req.file.filename);
+        }
+        const error = new Error("Email already in use");
+        error.statusCode = 422;
+        throw error;
+      }
+    }
+
+    if (req.body.status) user.status = req.body.status;
     if (req.body.name) user.name = req.body.name;
     if (req.body.email) user.email = req.body.email;
     if (req.body.phone) user.phone = req.body.phone;
@@ -120,4 +134,4 @@ export const deleteProfile = async (req, res, next) => {
     }
     next(err);
   }
-};  
+};

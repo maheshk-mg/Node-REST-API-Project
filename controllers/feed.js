@@ -58,9 +58,11 @@ export const getPosts = async (req, res, next) => {
         { $match: { postId: { $in: postIds } } },
         { $group: { _id: "$postId", count: { $sum: 1 } } },
       ]),
-      Like.find({ postId: { $in: postIds }, creator: req.userId })
-        .select("postId")
-        .lean(),
+      req.userId
+        ? Like.find({ postId: { $in: postIds }, creator: req.userId })
+            .select("postId")
+            .lean()
+        : [],
     ]);
 
     const likeCountMap = new Map(
@@ -100,6 +102,76 @@ export const getPosts = async (req, res, next) => {
   }
 };
 
+//GET CURRENT USER'S ALL POSTS (PROTECTED)
+export const getMyPosts = async (req, res, next) => {
+  const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+  const rawLimit = parseInt(req.query.limit, 10);
+  const limit = Number.isFinite(rawLimit)
+    ? Math.min(Math.max(rawLimit, 1), 50)
+    : 10;
+
+  try {
+    const userId = req.userId; // From isAuth middleware
+
+    const totalItems = await Post.countDocuments({ creator: userId });
+    const totalPages = totalItems === 0 ? 0 : Math.ceil(totalItems / limit);
+
+    const posts = await Post.find({ creator: userId })
+      .sort({ createdAt: -1 })
+      .skip((page - 1) * limit)
+      .limit(limit)
+      .populate("creator", "name profileImage")
+      .lean();
+
+    const postIds = posts.map((p) => p._id);
+
+    // Bulk counts for likes and comments
+    const [likeCounts, commentCounts] = await Promise.all([
+      Like.aggregate([
+        { $match: { postId: { $in: postIds } } },
+        { $group: { _id: "$postId", count: { $sum: 1 } } },
+      ]),
+      Comment.aggregate([
+        { $match: { postId: { $in: postIds } } },
+        { $group: { _id: "$postId", count: { $sum: 1 } } },
+      ]),
+    ]);
+
+    const likeCountMap = new Map(
+      likeCounts.map((d) => [String(d._id), d.count]),
+    );
+    const commentCountMap = new Map(
+      commentCounts.map((d) => [String(d._id), d.count]),
+    );
+
+    const enrichedPosts = posts.map((p) => {
+      const id = String(p._id);
+      return {
+        ...p,
+        likeCount: likeCountMap.get(id) || 0,
+        commentCount: commentCountMap.get(id) || 0,
+      };
+    });
+
+    res.status(200).json({
+      message: "Your posts fetched successfully",
+      posts: enrichedPosts,
+      pagination: {
+        totalItems,
+        totalPages,
+        currentPage: page,
+        perPage: limit,
+        hasNext: totalPages > 0 ? page < totalPages : false,
+      },
+    });
+  } catch (err) {
+    if (!err.statusCode) {
+      err.statusCode = 500;
+    }
+    next(err);
+  }
+};
+
 //GET POST BY ID
 export const getPostById = async (req, res, next) => {
   const postId = req.params.postId;
@@ -117,7 +189,7 @@ export const getPostById = async (req, res, next) => {
     const [likeCount, commentCount, isLiked] = await Promise.all([
       Like.countDocuments({ postId }),
       Comment.countDocuments({ postId }),
-      Like.exists({ postId, creator: req.userId }),
+      req.userId ? Like.exists({ postId, creator: req.userId }) : null,
     ]);
 
     res.status(200).json({
@@ -284,15 +356,21 @@ export const deleteComment = async (req, res, next) => {
       throw error;
     }
 
-    const comment = await Comment.findOne({
-      _id: commentId,
-      postId,
-      creator: req.userId,
-    });
+    const comment = await Comment.findById(commentId);
 
     if (!comment) {
       const error = new Error("Could not find comment");
       error.statusCode = 404;
+      throw error;
+    }
+
+    // Only comment creator or admin can delete
+    const isCreator = comment.creator.toString() === req.userId;
+    const isAdmin = req.role === "admin";
+    
+    if (!isCreator && !isAdmin) {
+      const error = new Error("Not Authorized: Can only delete your own comments");
+      error.statusCode = 403;
       throw error;
     }
 
@@ -364,7 +442,7 @@ export const getLikeSummary = async (req, res, next) => {
 
     const [likeCount, isLiked] = await Promise.all([
       Like.countDocuments({ postId }),
-      Like.exists({ postId, creator: req.userId }),
+      req.userId ? Like.exists({ postId, creator: req.userId }) : null,
     ]);
 
     res.status(200).json({
@@ -435,7 +513,11 @@ export const updatePost = async (req, res, next) => {
       throw error;
     }
 
-    if (post.creator.toString() !== req.userId) {
+    // Only post creator or admin can edit
+    const isCreator = post.creator.toString() === req.userId;
+    const isAdmin = req.role === "admin";
+    
+    if (!isCreator && !isAdmin) {
       const error = new Error("Not Authorized");
       error.statusCode = 403;
       throw error;
@@ -534,7 +616,11 @@ export const deletPost = async (req, res, next) => {
       throw error;
     }
 
-    if (post.creator.toString() !== req.userId) {
+    // Only post creator or admin can delete
+    const isCreator = post.creator.toString() === req.userId;
+    const isAdmin = req.role === "admin";
+    
+    if (!isCreator && !isAdmin) {
       const error = new Error("Not Authorized");
       error.statusCode = 403;
       throw error;

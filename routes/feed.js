@@ -7,34 +7,40 @@ import isAuth from "../middleware/is-auth.js";
 const router = express.Router();
 
 // GET  /feed
-router.get("/posts", isAuth, feedController.getPosts);
+router.get("/posts", feedController.getPosts);
+
+// GET CURRENT USER'S POSTS (requires login)
+router.get("/my-posts", isAuth, feedController.getMyPosts);
 
 // GET POST by ID
-router.get("/post/:postId", isAuth, feedController.getPostById);
+router.get("/post/:postId", feedController.getPostById);
 
 // COMMENTS
-router.get("/post/:postId/comments", isAuth, feedController.getComments);
+router.get("/post/:postId/comments", feedController.getComments);
+
 router.post(
   "/post/:postId/comments",
   isAuth,
   [body("content").trim().isLength({ min: 1, max: 500 })],
   feedController.createComment,
 );
+
 router.delete(
   "/post/:postId/comments/:commentId",
   isAuth,
   feedController.deleteComment,
 );
+
 router.get(
   "/posts/:postId/comments",
-  isAuth,
   feedController.getCommentsByPostId,
 );
 
 // LIKES
 // POST toggles like/unlike for the current user.
 router.post("/post/:postId/like", isAuth, feedController.toggleLike);
-router.get("/post/:postId/likes", isAuth, feedController.getLikeSummary);
+
+router.get("/post/:postId/likes", feedController.getLikeSummary);
 
 //POST /feed/post
 router.post(
